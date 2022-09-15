@@ -52,7 +52,7 @@ class LocalServer implements IJupyterUriProvider {
         const server = {
             baseUrl,
             token,
-            displayName: baseUrl,
+            displayName: 'GitHub jupyter server',
             authorizationHeader: { Authorization: `token ${token}` },
         };
 
