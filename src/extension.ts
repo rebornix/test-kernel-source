@@ -1,6 +1,6 @@
-import { spawn } from 'child_process';
 import * as vscode from 'vscode';
 export type JupyterServerUriHandle = string;
+const isReachable = require('is-reachable');
 
 export interface IJupyterServerUri {
     baseUrl: string;
@@ -17,6 +17,7 @@ export interface IJupyterUriProvider {
      * Should be a unique string (like a guid)
      */
     readonly id: string;
+    displayName?: string;
     onDidChangeHandles?: vscode.Event<void>;
     getQuickPickEntryItems?(): vscode.QuickPickItem[];
     handleQuickPick?(item: vscode.QuickPickItem, backEnabled: boolean): Promise<JupyterServerUriHandle | 'back' | undefined>;
@@ -34,62 +35,86 @@ interface ICachedServer extends IJupyterServerUri {
     // serverProcess: any;
 }
 
+interface IQuickPick extends vscode.QuickPickItem {
+    id: string;
+}
+
 class LocalServer implements IJupyterUriProvider {
-    id: string = 'local';
-    private _servers: Map<JupyterServerUriHandle, IJupyterServerUri> = new Map();
+    id: string = 'RemoteServerPickerExample';
+    displayName = 'GitHub';
     private _eventEmitter = new vscode.EventEmitter<void>();
     onDidChangeHandles = this._eventEmitter.event;
+    private _token: string | undefined = undefined;
+    private _server: IJupyterServerUri | undefined = undefined;
 
     constructor(readonly context: vscode.ExtensionContext) {
-        const cache = context.workspaceState.get<IJupyterServerUri[]>('servercache') ?? [];
-        this.updateServers(cache);
+    }
+
+    getQuickPickEntryItems(): IQuickPick[] {
+        return [
+            {
+                id: 'create-cpu',
+                label: 'Connect to Jupyter Server (CPU)',
+                // detail: 'New jupyter server on Codespace (CPU)',
+            }
+        ];
+    }
+
+    async handleQuickPick(item: IQuickPick, backEnabled: boolean): Promise<JupyterServerUriHandle | 'back' | undefined> {
+        if (item.id === 'create-cpu') {
+            return this.createServer();
+        }
+
+        return undefined;
     }
 
     async createServer(): Promise<JupyterServerUriHandle> {
         const baseUrl = 'http://localhost:8888';
-        const token = '68def3b2dd9daef67dc02ca2098ddf0b00a821c8ce7c0323';
+        let token = this._token;
 
-        const server = {
+        if (!token) {
+            token = await vscode.window.showInputBox({
+                title: 'Enter token',
+                prompt: 'Enter token',
+                value: '',
+                ignoreFocusOut: true,
+            });
+        }
+
+        if (!token) {
+            throw new Error('Token is required');
+        }
+
+        this._token = token;
+        this._server = {
             baseUrl,
             token,
-            displayName: 'GitHub jupyter server',
+            displayName: 'GitHub jupyter server (cpu)',
             authorizationHeader: { Authorization: `token ${token}` },
         };
-
-        this._servers.set(server.baseUrl, server);
-        this._eventEmitter.fire();
-        this.context.workspaceState.update('servercache', Array.from(this._servers.values()));
-
-        return server.baseUrl;
-    }
-
-    updateServers(servers: IJupyterServerUri[]) {
-        servers.forEach(server => {
-            this._servers.set(server.baseUrl, server);
-        });
-
-        this._eventEmitter.fire();
-    }
-
-    clearServers() {
-        this._servers.clear();
-        this._eventEmitter.fire();
-        this.context.workspaceState.update('servercache', []);
+        
+        return this._server.baseUrl;
     }
 
     async getServerUri(handle: string): Promise<IJupyterServerUri> {
-        const server = this._servers.get(handle);
-
-        if (server) {
-            return server;
+        if (handle !== this._server?.baseUrl) {
+            throw new Error('Invalid handle');
         }
-        throw new Error(`Server ${handle} not found`);
+
+        return this._server;
     }
 
     async getHandles(): Promise<JupyterServerUriHandle[]> {
-        return Array.from(this._servers.keys());
-    }
+        const ir = await isReachable('http://localhost:8888' );
 
+        if (ir) {
+            return [
+                'http://localhost:8888'
+            ];
+        } else {
+            return [];
+        }
+    }
 }
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -100,24 +125,13 @@ export async function activate(context: vscode.ExtensionContext) {
     if (jupyter?.exports) {
         const api = jupyter.exports;
         const localServer = new LocalServer(context);
-
         api.registerRemoteServerProvider(localServer);
 
-        context.subscriptions.push(vscode.commands.registerCommand('kernel-resolver.connectToGitHub', async () => {
-            return new Promise<void>(async resolve => {
-                const handle = await localServer.createServer();
-                api.addRemoteJupyterServer('local', handle);
-                setTimeout(() => {
-                    resolve();
-                }, 3000);
-            })
-
-        }));
-
-        context.subscriptions.push(vscode.commands.registerCommand('kernel-resolver.clearConnections', () => {
-            localServer.clearServers();
+        context.subscriptions.push(vscode.commands.registerCommand('kernel-resolver.connectJupyterServer', async (args) => {
+            const handle = await localServer.createServer();
+            await api.addRemoteJupyterServer('RemoteServerPickerExample', handle);
         }));
     }
 }
 // this method is called when your extension is deactivated
-export function deactivate() {}                    ``
+export function deactivate() {}

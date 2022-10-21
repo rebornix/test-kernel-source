@@ -1,66 +1,73 @@
 {
-  "name": "kernel-resolver",
-	"displayName": "kernel-resolver",
-	"description": "",
-	"version": "0.0.1",
-	"engines": {
-		"vscode": "^1.66.0"
-	},
-	"categories": [
-		"Other"
-	],
-    "enabledApiProposals": [
-        "notebookKernelSource",
-        "notebookControllerKind",
-		"notebookEditor"
-    ],
-	"activationEvents": [
-        "*"
-	],
-	"main": "./out/extension.js",
-    "browser": "./dist/web/extension.js",
-	"contributes": {
-		"commands": [
-			{
-				"command": "kernel-resolver.connectToGitHub",
-				"title": "Connect to GitHub"
-			},
-			{
-				"command": "kernel-resolver.clearConnections",
-				"title": "Clear connections"
-			}
-		],
-		"menus": {
-			"notebook/kernelSource": [
-				{
-					"command": "kernel-resolver.connectToGitHub"
-				}
-			]
-		}
-	},
-	"scripts": {
-		"vscode:prepublish": "yarn run compile",
-		"compile": "tsc -p ./",
-		"watch": "tsc -watch -p ./",
-		"pretest": "yarn run compile && yarn run lint",
-		"lint": "eslint src --ext ts",
-		"test": "node ./out/test/runTest.js",
-        "compile-web": "webpack"
-	},
-	"devDependencies": {
-		"@types/vscode": "^1.66.0",
-		"@types/glob": "^7.2.0",
-		"@types/mocha": "^9.1.0",
-		"@types/node": "14.x",
-		"@typescript-eslint/eslint-plugin": "^5.16.0",
-		"@typescript-eslint/parser": "^5.16.0",
-		"eslint": "^8.11.0",
-		"glob": "^7.2.0",
-		"mocha": "^9.2.2",
-		"typescript": "^4.5.5",
-		"@vscode/test-electron": "^2.1.3",
-        "ts-loader": "^9.2.5",
-        "webpack": "^5.52.1",
-		"webpack-cli": "^4.8.0"
-	}
+  	"name": "jupyter-server-provider",
+  	"displayName": "kernel-resolver",
+  	"description": "",
+  	"version": "0.0.1",
+  	"engines": {
+  	  	"vscode": "^1.66.0"
+  	},
+  	"publisher": "microsoft",
+  	"categories": [
+  	  	"Other"
+  	],
+  	"enabledApiProposals": [
+  	  	"notebookKernelSource",
+  	  	"notebookControllerKind",
+  	  	"notebookEditor"
+  	],
+  	"activationEvents": [
+  	  	"onNotebook:jupyter-notebook",
+  	  	"onCommand:kernel-resolver.connectJupyterServer"
+  	],
+  	"main": "./out/extension.js",
+  	"browser": "./dist/web/extension.js",
+  	"contributes": {
+  	  	"pythonRemoteServerProvider": [
+  	  	  	{
+  	  	  	  	"id": "RemoteServerPickerExample"
+  	  	  	}
+  	  	],
+  	  	"commands": [
+  	  	  	{
+  	  	  	  	"command": "kernel-resolver.connectJupyterServer",
+  	  	  	  	"title": "Connect to Jupyter Server"
+  	  	  	}
+  	  	],
+  	  	"menus": {
+  	  	  	"notebook/kernelSource": [
+  	  	  	  	{
+  	  	  	  	  	"command": "kernel-resolver.connectJupyterServer",
+  	  	  	  	  	"group": "inline"
+  	  	  	  	}
+  	  	  	]
+  	  	}
+  	},
+  	"scripts": {
+  	  	"vscode:prepublish": "yarn run compile",
+  	  	"compile": "tsc -p ./",
+  	  	"watch": "tsc -watch -p ./",
+  	  	"pretest": "yarn run compile && yarn run lint",
+  	  	"lint": "eslint src --ext ts",
+  	  	"test": "node ./out/test/runTest.js",
+  	  	"compile-web": "webpack"
+  	},
+  	"devDependencies": {
+  	  	"@types/glob": "^7.2.0",
+  	  	"@types/mocha": "^9.1.0",
+  	  	"@types/node": "14.x",
+  	  	"@types/vscode": "^1.66.0",
+  	  	"@typescript-eslint/eslint-plugin": "^5.16.0",
+  	  	"@typescript-eslint/parser": "^5.16.0",
+  	  	"@vscode/test-electron": "^2.1.3",
+  	  	"eslint": "^8.11.0",
+  	  	"glob": "^7.2.0",
+  	  	"mocha": "^9.2.2",
+  	  	"ts-loader": "^9.2.5",
+  	  	"typescript": "^4.5.5",
+  	  	"webpack": "^5.52.1",
+  	  	"webpack-cli": "^4.8.0"
+  	},
+  	"dependencies": {
+  	  	"is-reachable": "^5.2.1"
+  	}
 }
