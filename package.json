@@ -12,8 +12,7 @@
   	],
   	"enabledApiProposals": [
   	  	"notebookKernelSource",
-  	  	"notebookControllerKind",
-  	  	"notebookEditor"
+  	  	"notebookControllerKind"
   	],
   	"activationEvents": [
   	  	"onNotebook:jupyter-notebook",
@@ -24,22 +23,17 @@
   	"contributes": {
   	  	"pythonRemoteServerProvider": [
   	  	  	{
-  	  	  	  	"id": "RemoteServerPickerExample"
+  	  	  	  	"id": "jupyter-server-provider-containers"
   	  	  	}
   	  	],
   	  	"commands": [
   	  	  	{
   	  	  	  	"command": "kernel-resolver.connectJupyterServer",
-  	  	  	  	"title": "Connect to Jupyter Server"
+  	  	  	  	"title": "[Test] Connect to Jupyter Server"
   	  	  	}
   	  	],
   	  	"menus": {
-  	  	  	"notebook/kernelSource": [
-  	  	  	  	{
-  	  	  	  	  	"command": "kernel-resolver.connectJupyterServer",
-  	  	  	  	  	"group": "inline"
-  	  	  	  	}
-  	  	  	]
+
   	  	}
   	},
   	"scripts": {
