@@ -1,6 +1,6 @@
 {
-  	"name": "jupyter-server-provider",
-  	"displayName": "kernel-resolver",
+  	"name": "container-jupyter-server-provider",
+  	"displayName": "Run Jupyter Server in Docker Container",
   	"description": "",
   	"version": "0.0.1",
   	"engines": {
@@ -10,13 +10,11 @@
   	"categories": [
   	  	"Other"
   	],
-  	"enabledApiProposals": [
-  	  	"notebookKernelSource",
-  	  	"notebookControllerKind"
-  	],
+	"extensionDependencies": [
+		"ms-toolsai.jupyter"
+	],
   	"activationEvents": [
-  	  	"onNotebook:jupyter-notebook",
-  	  	"onCommand:kernel-resolver.connectJupyterServer"
+  	  	"onNotebook:jupyter-notebook"
   	],
   	"main": "./out/extension.js",
   	"browser": "./dist/web/extension.js",
@@ -27,13 +25,8 @@
   	  	  	}
   	  	],
   	  	"commands": [
-  	  	  	{
-  	  	  	  	"command": "kernel-resolver.connectJupyterServer",
-  	  	  	  	"title": "[Test] Connect to Jupyter Server"
-  	  	  	}
   	  	],
   	  	"menus": {
-
   	  	}
   	},
   	"scripts": {

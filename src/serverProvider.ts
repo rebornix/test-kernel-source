@@ -122,7 +122,7 @@ class JupyterServerContainer {
         const token = await inspectPromise;
 
         // get port used in docker container
-        const tokenPromise = new Promise<string>(resolve => {
+        const portPromise = new Promise<string>(resolve => {
             const proc = spawn('docker', [
                 'container',
                 'port',
@@ -141,7 +141,7 @@ class JupyterServerContainer {
             });
         });
 
-        const port = await tokenPromise;
+        const port = await portPromise;
         return {
             baseUrl: `http://127.0.0.1:${port}`,
             token: token,
@@ -268,7 +268,7 @@ export class ContainerServer implements IJupyterUriProvider {
                                 info
                             );
 
-                            this._handles = [server];
+                            this._handles.push(server);
                             handled = true;
                             progress.report({ increment: 100 });
                             resolve(handleId);
