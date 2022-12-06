@@ -76,7 +76,8 @@ class JupyterServerContainer {
     constructor(
         readonly handle: JupyterServerUriHandle,
         readonly port: string,
-        private _serverInfo: IJupyterServerUri | undefined
+        private _serverInfo: IJupyterServerUri | undefined,
+        private _logger: vscode.OutputChannel
     ) {
     }
 
@@ -90,39 +91,49 @@ class JupyterServerContainer {
     }
 
     private async _getServerInfo(): Promise<IJupyterServerUri> {
-        
-        const inspectPromise = new Promise<string>(resolve => {
-            const proc = spawn('docker', [
-                'start',
-                '-a',
-                this.handle
-            ], {
-                stdio: ['pipe', 'pipe', 'pipe']
-            });
+        this._logger.appendLine(`Getting server info for ${this.handle}`);
+        const start = await spawnAsync('docker', [
+            'start',
+            this.handle
+        ]);
 
-            proc.stdout.on('data', (data) => {
-                console.log(`stdout attach: ${data}`); 
-                const str = data.toString();
-                const token = parseTokenFromLog(str);
-                if (token) {
-                    resolve(token);
-                }
-            });
-            proc.stderr.on('data', (data) => {
-                console.log(`stderr attach: ${data}`); 
-                const str = data.toString();
-                const token = parseTokenFromLog(str);
-                if (token) {
-                    resolve(token);
-                }
-            });
-            // TODO handle close
+        if (start.code !== 0) {
+            throw new Error('Failed to start container');
+        }
+
+        const containerLog = await spawnAsync('docker', [
+            'container',
+            'logs',
+            this.handle
+        ], {
+            stdio: ['pipe', 'pipe', 'pipe']
         });
 
-        const token = await inspectPromise;
+        if (containerLog.code !== 0) {
+            throw new Error('Failed to get container logs');
+        }
+
+        const lines = containerLog.stdErr.split(/\r?\n/).reverse();
+
+        let serverToken: string | undefined;
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const token = parseTokenFromLog(line);
+            if (token) {
+                serverToken = token;
+                break;
+            }
+        }
+
+        if (!serverToken) {
+            throw new Error('Failed to get server token');
+        }
+
+        this._logger.appendLine(`Fetch server token successfull`);
 
         // get port used in docker container
         const portPromise = new Promise<string>(resolve => {
+            this._logger.appendLine(`Getting port for ${this.handle}`);
             const proc = spawn('docker', [
                 'container',
                 'port',
@@ -132,22 +143,24 @@ class JupyterServerContainer {
             });
 
             proc.stdout.on('data', (data) => {
-                console.log(`stdout port: ${data}`); 
+                this._logger.appendLine(`stdout port: ${data}`);
                 const str = data.toString().trim();
                 const port = str.split(':')[1];
-                console.log('port', port);
+                this._logger.appendLine(`port: ${port}`);
                 resolve(port);
                 proc.kill();
             });
         });
 
         const port = await portPromise;
+
+        this._logger.appendLine(`Fetch port successfull`);
         return {
             baseUrl: `http://127.0.0.1:${port}`,
-            token: token,
+            token: serverToken,
             displayName: this.handle,
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            authorizationHeader: { Authorization: `token ${token}` },
+            authorizationHeader: { Authorization: `token ${serverToken}` },
         };
     }
 }
@@ -159,13 +172,15 @@ export class ContainerServer implements IJupyterUriProvider {
     private _eventEmitter = new vscode.EventEmitter<void>();
     onDidChangeHandles = this._eventEmitter.event;
     private _initHandlesPromise: Promise<void>;
+    private _logger: vscode.OutputChannel;
 
     constructor() {
-        // init
+        this._logger = vscode.window.createOutputChannel('Jupyter Server in Container');
         this._initHandlesPromise = this._init();
     }
 
     private async _init() {
+        this._logger.appendLine('Initializing container servers');
         // docker ps find all containers for image
         const parseContainersPromise = new Promise<JupyterServerContainer[]>(resolve => {
             const proc = spawn('docker', [
@@ -180,7 +195,7 @@ export class ContainerServer implements IJupyterUriProvider {
             });
 
             proc.stdout.on('data', (data) => {
-                console.log(`stdout: ${data}`);
+                this._logger.appendLine(`ps stdout: ${data}`);
                 // parse data to get docker container id and name
                 const servers = [];
                 const lines = data.toString().split(/\r?\n/);
@@ -190,8 +205,8 @@ export class ContainerServer implements IJupyterUriProvider {
                         const containerId = matches[1];
                         const handleId = matches[2];
                         const status = matches[3];
-                        console.log(`containerId: ${containerId}, handleId: ${handleId}, status: ${status}`);
-                        const server = new JupyterServerContainer(handleId, '8888', undefined);
+                        this._logger.appendLine(`containerId: ${containerId}, handleId: ${handleId}, status: ${status}`);
+                        const server = new JupyterServerContainer(handleId, '8888', undefined, this._logger);
                         servers.push(server);
                     }
                 }
@@ -200,11 +215,11 @@ export class ContainerServer implements IJupyterUriProvider {
             });
 
             proc.stderr.on('data', (data) => {
-                console.log(`stderr: ${data}`);
+                this._logger.appendLine(`ps stderr: ${data}`);
             });
 
             proc.on('close', (code) => {
-                console.log(`child process exited with code ${code}`);
+                this._logger.appendLine(`ps child process exited with code ${code}`);
                 resolve([]);
             });
         });
@@ -248,13 +263,13 @@ export class ContainerServer implements IJupyterUriProvider {
                         stdio: ['pipe', 'pipe', 'pipe']
                     });
                     serverProcess.stdout.on('data', (data) => {
-                        console.log(`stdout: ${data}`);
+                        this._logger.appendLine(`docker run stdout: ${data}`);
                     });
                     let handled = false;
                     serverProcess.stderr.on('data', (data) => {
                         // parse stderr for the url and token
                         const str = data.toString();
-                        console.log(`stderr: ${str}`);
+                        this._logger.appendLine(`docker run stderr: ${str}`);
 
                         if (handled) {
                             return;
@@ -265,8 +280,11 @@ export class ContainerServer implements IJupyterUriProvider {
                             const server = new JupyterServerContainer(
                                 handleId,
                                 port,
-                                info
+                                info,
+                                this._logger
                             );
+
+                            this._logger.appendLine(`Adding server ${handleId} to list of handles`);
 
                             this._handles.push(server);
                             handled = true;
@@ -276,7 +294,7 @@ export class ContainerServer implements IJupyterUriProvider {
                         }
                     });
                     serverProcess.on('close', (code) => {
-                        console.log(`child process exited with code ${code}`);
+                        this._logger.appendLine(`docker run child process exited with code ${code}`);
                         this._handles = this._handles.filter(h => h.handle !== handleId);
                         this._eventEmitter.fire();
                     });
@@ -311,11 +329,10 @@ export class ContainerServer implements IJupyterUriProvider {
                 '-f',
                 handle
             ]);
-            console.log(result.code, result.hasStdErr);
+            this._logger.appendLine(`docker rm -f ${handle} exited with code ${result.code}`);
             // assert.strictEqual(result.code, 0, 'Expect zero exit code');
         } catch (error) {
-            console.log('Error thrown');
-            console.log(error);
+            this._logger.appendLine(`Error thrown when removing handle ${handle}`);
         }	
 
         this._eventEmitter.fire();
