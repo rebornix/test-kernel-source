@@ -9,7 +9,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     if (jupyter?.exports) {
         const api = jupyter.exports;
-        const localServer = new ContainerServer();
+        const localServer = new ContainerServer(context);
         api.registerRemoteServerProvider(localServer);
     }
 }
