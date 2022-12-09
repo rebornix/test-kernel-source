@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { spawn } from 'child_process';
-import { getPortFree, parseServerInfoFromLog, spawnAsync } from './helpers';
-import { IContainerProviderContrib, IJupyterServerUri, IQuickPick, JupyterServerUriHandle } from './common';
-import { JupyterServerContainer } from './serverContainerInstance';
+import { getPortFree, parseServerInfoFromLog, spawnAsync } from '../common/helpers';
+import { IContainerProviderContrib, IJupyterServerUri, IQuickPick, JupyterServerUriHandle } from '../common/common';
+import { JupyterServerContainer } from '../common/serverContainerInstance';
 
 export class SciPyContainerServerProvider implements IContainerProviderContrib {
     private _handles: JupyterServerContainer[] = [];
@@ -72,7 +72,7 @@ export class SciPyContainerServerProvider implements IContainerProviderContrib {
         return [
             {
                 id: 'connect-scientific-python',
-                label: 'Scientific Jupyter Notebook Python Stack (jupyter/scipy-notebook)',
+                label: 'Scientific Python Stack (jupyter/scipy-notebook)',
                 detail: 'jupyter/scipy-notebook:85f615d5cafa',
                 execute: this.execute.bind(this)
             }

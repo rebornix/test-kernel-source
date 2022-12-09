@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { IContainerProviderContrib, IJupyterServerUri, IJupyterUriProvider, IQuickPick, JupyterServerUriHandle } from './common';
-import { SciPyContainerServerProvider } from './containerImageProvider';
+import { IContainerProviderContrib, IJupyterServerUri, IJupyterUriProvider, IQuickPick, JupyterServerUriHandle } from './common/common';
+import { SciPyContainerServerProvider } from './providers/scipyImageProvider';
 
 export class ContainerServer implements IJupyterUriProvider {
     id: string = 'jupyter-server-provider-containers';
