@@ -22,45 +22,52 @@ export class SciPyContainerServerProvider implements IContainerProviderContrib {
         this._logger.appendLine('Initializing container servers');
         // docker ps find all containers for image
         const parseContainersPromise = new Promise<JupyterServerContainer[]>(resolve => {
-            const proc = spawn('docker', [
-                'ps',
-                '-a',
-                '-f',
-                'ancestor=jupyter/scipy-notebook:85f615d5cafa',
-                '--format',
-                '{{.ID}} {{.Names}} {{.Status}}'
-            ], {
-                stdio: ['pipe', 'pipe', 'pipe']
-            });
+            try {
+                const proc = spawn('docker', [
+                    'ps',
+                    '-a',
+                    '--filter',
+                    'ancestor=jupyter/scipy-notebook:85f615d5cafa',
+                    '--format',
+                    '{{.ID}} {{.Names}} {{.Status}}'
+                ], {
+                    stdio: ['pipe', 'pipe', 'pipe']
+                });
 
-            proc.stdout.on('data', (data) => {
-                this._logger.appendLine(`ps stdout: ${data}`);
-                // parse data to get docker container id and name
-                const servers = [];
-                const lines = data.toString().split(/\r?\n/);
-                for (const line of lines) {
-                    const matches = /^(\w+)\s([\w\-]+)\s(.*)/.exec(line);
-                    if (matches && matches.length === 4) {
-                        const containerId = matches[1];
-                        const handleId = matches[2];
-                        const status = matches[3];
-                        this._logger.appendLine(`containerId: ${containerId}, handleId: ${handleId}, status: ${status}`);
-                        const server = new JupyterServerContainer(handleId, '8888', undefined, this._logger);
-                        servers.push(server);
+                proc.stdout.on('data', (data) => {
+                    this._logger.appendLine(`ps stdout: ${data}`);
+                    // parse data to get docker container id and name
+                    const servers = [];
+                    const lines = data.toString().split(/\r?\n/);
+                    for (const line of lines) {
+                        const matches = /^(\w+)\s([\w\-]+)\s(.*)/.exec(line);
+                        if (matches && matches.length === 4) {
+                            const containerId = matches[1];
+                            const handleId = matches[2];
+                            const status = matches[3];
+                            this._logger.appendLine(`containerId: ${containerId}, handleId: ${handleId}, status: ${status}`);
+                            const server = new JupyterServerContainer(handleId, '8888', undefined, this._logger);
+                            servers.push(server);
+                        }
                     }
-                }
 
-                resolve(servers);
-            });
+                    resolve(servers);
+                });
 
-            proc.stderr.on('data', (data) => {
-                this._logger.appendLine(`ps stderr: ${data}`);
-            });
+                proc.stderr.on('data', (data) => {
+                    this._logger.appendLine(`ps stderr: ${data}`);
+                });
 
-            proc.on('close', (code) => {
-                this._logger.appendLine(`ps child process exited with code ${code}`);
+                proc.on('close', (code) => {
+                    this._logger.appendLine(`ps child process exited with code ${code}`);
+                    resolve([]);
+                });
+
+            } catch(ex) {
+                this._logger.appendLine(`Docker PS Error: ${ex}`);
                 resolve([]);
-            });
+            }
+
         });
 
         const servers = await parseContainersPromise;
@@ -87,19 +94,40 @@ export class SciPyContainerServerProvider implements IContainerProviderContrib {
                 // find a free port to use for the container
 
                 const port = await getPortFree();
+                this._logger.appendLine(`Using port ${port}`);
                 // generate a random handle id
                 const handleId = 'jupyter-server-provider-containers-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
                 progress.report({ message: `Building container jupyter/scipy-notebook:85f615d5cafa` });
 
-                const serverProcess = spawn('docker', [
+                const args = [
                     'run',
                     // '-it',
                     '-a', 'stdin', '-a', 'stdout', '-a','stderr',
-                    '-p', `${port}:8888`,
-                    '--name', handleId,
+                    '-p', `${port}:8888`
+                ];
+
+                // check workspace
+
+                const activeDocument = vscode.window.activeNotebookEditor?.notebook;
+                if (activeDocument) {
+                    const workspaceFolder = vscode.workspace.getWorkspaceFolder(activeDocument.uri);
+                    if (workspaceFolder) {
+                        args.push('-v', `${workspaceFolder.uri.fsPath}:/home/jovyan/work`);
+                    }
+                }
+
+                args.push(...[
+                    '--name',
+                    handleId,
                     'jupyter/scipy-notebook:85f615d5cafa',
-                    'start-notebook.sh', '--NotebookApp.allow_origin_pat=.*', './', '--no-browser'
-                ], {
+                    'start-notebook.sh',
+                    '--notebook-dir=/home/jovyan/work/',
+                    '--NotebookApp.allow_origin_pat=.*',
+                    './',
+                    '--no-browser'
+                ]);
+
+                const serverProcess = spawn('docker', args, {
                     stdio: ['pipe', 'pipe', 'pipe']
                 });
                 serverProcess.stdout.on('data', (data) => {

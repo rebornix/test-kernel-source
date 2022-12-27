@@ -13,6 +13,7 @@ export function parseServerInfoFromLog(data: string, port: string, handle: strin
             displayName: handle,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             authorizationHeader: { Authorization: `token ${token}` },
+			workingDirectory: 'work'
         };
         return server;
     }

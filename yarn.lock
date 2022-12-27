@@ -152,10 +152,10 @@
   dependencies:
     "@types/node" "*"
 
-"@types/vscode@^1.66.0":
-  "integrity" "sha512-ZfJck4M7nrGasfs4A4YbUoxis3Vu24cETw3DERsNYtDZmYSYtk6ljKexKFKhImO/ZmY6ZMsmegu2FPkXoUFImA=="
-  "resolved" "https://registry.npmjs.org/@types/vscode/-/vscode-1.66.0.tgz"
-  "version" "1.66.0"
+"@types/vscode@^1.74.0":
+  "integrity" "sha512-LyeCIU3jb9d38w0MXFwta9r0Jx23ugujkAxdwLTNCyspdZTKUc43t7ppPbCiPoQ/Ivd/pnDFZrb4hWd45wrsgA=="
+  "resolved" "https://registry.npmjs.org/@types/vscode/-/vscode-1.74.0.tgz"
+  "version" "1.74.0"
 
 "@typescript-eslint/eslint-plugin@^5.16.0":
   "integrity" "sha512-w59GpFqDYGnWFim9p6TGJz7a3qWeENJuAKCqjGSx+Hq/bwq3RZwXYqy98KIfN85yDqz9mq6QXiY5h0FjGQLyEg=="
@@ -1308,11 +1308,6 @@
   "integrity" "sha512-vjc0SSRNZ32s9SbZBzGaiP6YVB+xglLShhgZD/FHMZUXBvQWaV9CtzgeVhjccFJrI6RAMV+LX7NYxueW/A8W5A=="
   "resolved" "https://registry.npmjs.org/is-port-reachable/-/is-port-reachable-3.1.0.tgz"
   "version" "3.1.0"
-
-"is-port-reachable@^4.0.0":
-  "integrity" "sha512-9UoipoxYmSk6Xy7QFgRv2HDyaysmgSG75TFQs6S+3pDM7ZhKTF/bskZV+0UlABHzKjNVhPjYCLfeZUEg1wXxig=="
-  "resolved" "https://registry.npmjs.org/is-port-reachable/-/is-port-reachable-4.0.0.tgz"
-  "version" "4.0.0"
 
 "is-reachable@^5.2.1":
   "integrity" "sha512-ViPrrlmt9FTTclYbz6mL/PFyF1TXSpJ9y/zw9QMVJxbhU/7DFkvk/5cTv7S0sXtqbJj32zZ+jKpNAjrYTUZBPQ=="
